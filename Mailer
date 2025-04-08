@@ -1,0 +1,91 @@
+from crewai import Agent, Task, Crew
+from langchain_groq import ChatGroq
+import os
+import smtplib
+from email.mime.text import MIMEText
+
+
+os.environ["GROQ_API_KEY"] = "your grok api"
+
+
+llm = ChatGroq(model_name="groq/llama3-8b-8192", temperature=0.5)
+
+
+sender_name = "name"
+sender_email = "abc@gmail.com"
+sender_app_password = "16 digits password"
+
+
+recipient_name = input("Recipient's Name: ").strip()
+recipient_email = input("Recipient's Email: ").strip()
+raw_subject = input("What’s the email about (short): ").strip()
+
+
+subject_agent = Agent(
+    role="Subject Line Refiner",
+    goal="Craft clear and formal email subjects with no fluff.",
+    backstory="Specializes in professional communication and clarity.",
+    verbose=False,
+    llm=llm
+)
+
+email_agent = Agent(
+    role="Formal Email Writer",
+    goal="Write full formal emails (greeting, body, closing) without repetition or informal phrases.",
+    backstory="Corporate communications expert known for precision and tone.",
+    verbose=False,
+    llm=llm
+)
+
+# === Tasks ===
+task1 = Task(
+    description=f"Rephrase the subject: '{raw_subject}' to a crisp, formal email subject line. No emojis or casual words.",
+    expected_output="Single-line formal subject",
+    agent=subject_agent
+)
+
+task2 = Task(
+    description=f"""Write a full formal email to {recipient_name} about: {raw_subject}.
+Structure:
+- Formal greeting (e.g., Dear {recipient_name},)
+- A short and direct introduction to the topic
+- The main body with relevant details and requests
+- A formal closing using: Best regards, {sender_name}
+
+Do NOT include casual language, unnecessary thank yous, or repeat the greeting/body. Keep it precise and strictly professional.""",
+    expected_output="Complete email message with greeting, body, and closing.",
+    agent=email_agent,
+    context=[task1]
+)
+
+
+crew = Crew(
+    agents=[subject_agent, email_agent],
+    tasks=[task1, task2],
+    verbose=False
+)
+
+
+crew.kickoff()
+
+
+rephrased_subject = str(task1.output).strip()
+full_email = str(task2.output).strip()
+
+# === Print Email ===
+print("\n📧 FINAL EMAIL:\n")
+print(f"Subject: {rephrased_subject}\n\n{full_email}")
+
+# === Send Email ===
+msg = MIMEText(full_email)
+msg["Subject"] = rephrased_subject
+msg["From"] = sender_email
+msg["To"] = recipient_email
+
+try:
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(sender_email, sender_app_password)
+        smtp.send_message(msg)
+        print(f"\nEmail sent successfully to {recipient_email} with subject: '{rephrased_subject}'")
+except Exception as e:
+    print(f"\nFailed to send email: {e}")
