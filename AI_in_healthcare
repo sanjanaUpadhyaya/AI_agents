@@ -1,0 +1,105 @@
+from crewai import Agent, Task, Crew
+from langchain_groq import ChatGroq
+import os
+
+
+os.environ["GROQ_API_KEY"] = "your grok api"
+
+
+llm = ChatGroq(
+    model_name="groq/llama3-8b-8192",
+    temperature=0.7
+)
+
+
+researcher = Agent(
+    role="Healthcare Researcher",
+    goal="Study the role of AI in improving healthcare outcomes",
+    backstory="An expert in medical technology trends and healthcare systems.",
+    verbose=True,
+    llm=llm
+)
+
+summarizer = Agent(
+    role="Medical Content Analyst",
+    goal="Break down complex research into simple bullet points",
+    backstory="Specialist in making medical content readable.",
+    verbose=True,
+    llm=llm
+)
+
+blog_writer = Agent(
+    role="HealthTech Writer",
+    goal="Write informative and engaging content about AI in medicine",
+    backstory="Writes regularly for digital health blogs and journals.",
+    verbose=True,
+    llm=llm
+)
+
+email_marketer = Agent(
+    role="Email Copywriter",
+    goal="Write a short, catchy promotional email about the article",
+    backstory="Experienced in email marketing for med-tech newsletters.",
+    verbose=True,
+    llm=llm
+)
+
+title_expert = Agent(
+    role="SEO Title Generator",
+    goal="Create attention-grabbing, SEO-optimized titles",
+    backstory="Knows how to craft titles that bring clicks.",
+    verbose=True,
+    llm=llm
+)
+
+
+task1 = Task(
+    description="Research 3 major ways AI is improving healthcare (e.g., diagnosis, patient monitoring, drug discovery).",
+    expected_output="Detailed examples and impact points.",
+    agent=researcher
+)
+
+task2 = Task(
+    description="Summarize the research into 5 key bullet points for an executive summary.",
+    expected_output="Concise bullet list on AI in healthcare.",
+    agent=summarizer,
+    context=[task1]
+)
+
+task3 = Task(
+    description="Using the summary, write a 150-word blog intro on how AI is revolutionizing healthcare.",
+    expected_output="Engaging blog-style paragraph.",
+    agent=blog_writer,
+    context=[task2]
+)
+
+task4 = Task(
+    description="Draft a short email to promote this blog post, with a compelling hook and CTA.",
+    expected_output="An email (~100 words) with subject and body.",
+    agent=email_marketer,
+    context=[task3]
+)
+
+task5 = Task(
+    description="Suggest a blog title that is SEO-friendly and fits the tone of the intro.",
+    expected_output="Catchy blog title under 10 words.",
+    agent=title_expert,
+    context=[task3]
+)
+
+
+crew = Crew(
+    agents=[researcher, summarizer, blog_writer, email_marketer, title_expert],
+    tasks=[task1, task2, task3, task4, task5],
+    verbose=True
+)
+
+
+result = crew.kickoff()
+
+
+print("\n📌 Research:\n", task1.output)
+print("\n🔍 Summary:\n", task2.output)
+print("\n📝 Blog Intro:\n", task3.output)
+print("\n📧 Email:\n", task4.output)
+print("\n🎯 Blog Title:\n", task5.output)
