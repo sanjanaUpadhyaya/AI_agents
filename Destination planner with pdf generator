@@ -1,0 +1,109 @@
+#  Install required packages
+!pip install -q crewai langchain langchain_groq
+!pip install reportlab
+
+#  Set Groq API key
+import os
+os.environ["GROQ_API_KEY"] = "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"
+
+#  LangChain + Groq setup
+from langchain_groq import ChatGroq
+from crewai import Agent, Task, Crew
+
+#  LLM definition
+llm = ChatGroq(model="groq/llama3-8b-8192", temperature=0.7)
+
+
+destination = "India"
+
+
+destination_researcher = Agent(
+    role="Destination Researcher",
+    goal=f"Gather top reasons to visit {destination}",
+    backstory=f"An expert in world geography and tourism trends with a focus on {destination}.",
+    verbose=True,
+    llm=llm,
+)
+
+experience_curator = Agent(
+    role="Experience Curator",
+    goal=f"List exciting experiences a traveler can enjoy in {destination}",
+    backstory=f"A travel blogger who knows {destination}'s hidden gems and must-do activities.",
+    verbose=True,
+    llm=llm,
+)
+
+budget_analyst = Agent(
+    role="Budget Analyst",
+    goal=f"Estimate an average 5-day trip budget to {destination}",
+    backstory=f"A seasoned travel accountant who helps travelers plan trips within budget.",
+    verbose=True,
+    llm=llm,
+)
+
+#  Tasks
+from crewai import Task
+
+task1 = Task(
+    description=f"Research why travelers love visiting {destination}. Summarize cultural, natural, and social attractions.",
+    expected_output="A detailed summary of top attractions and reasons to visit Bali.",
+    agent=destination_researcher,
+)
+
+task2 = Task(
+    description=f"List top experiences and activities one should try in {destination}, including local tips.",
+    expected_output="A list of at least 5 unique experiences with local insights for Bali.",
+    agent=experience_curator,
+)
+
+task3 = Task(
+    description=f"Estimate a typical budget for a 5-day trip to {destination}, including flights, stay, food, and activities.",
+    expected_output="An approximate cost breakdown for a 5-day Bali trip in USD.",
+    agent=budget_analyst,
+)
+
+
+crew = Crew(
+    agents=[destination_researcher, experience_curator, budget_analyst],
+    tasks=[task1, task2, task3],
+    verbose=True,
+)
+
+final_report = crew.kickoff()
+
+
+print("\n\n Final Travel Report:")
+print(final_report)
+
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
+def save_to_pdf(text, filename="India_Travel_Plan_Report.pdf"):
+    c = canvas.Canvas(filename, pagesize=letter)
+    width, height = letter
+    margin = 40
+    y_position = height - margin
+
+    lines = text.split('\n')
+    for line in lines:
+        while len(line) > 100:
+            c.drawString(margin, y_position, line[:100])
+            line = line[100:]
+            y_position -= 15
+            if y_position < margin:
+                c.showPage()
+                y_position = height - margin
+        c.drawString(margin, y_position, line)
+        y_position -= 15
+        if y_position < margin:
+            c.showPage()
+            y_position = height - margin
+
+    c.save()
+
+
+save_to_pdf(str(final_report), "India_Travel_Plan_Report.pdf")
+print(" PDF saved at:", os.path.abspath("India_Travel_Plan_Report.pdf"))
+from google.colab import files
+files.download("India_Travel_Plan_Report.pdf")
+
