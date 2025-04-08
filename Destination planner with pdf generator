@@ -4,7 +4,7 @@
 
 #  Set Groq API key
 import os
-os.environ["GROQ_API_KEY"] = "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"
+os.environ["GROQ_API_KEY"] = "Your groq api"
 
 #  LangChain + Groq setup
 from langchain_groq import ChatGroq
