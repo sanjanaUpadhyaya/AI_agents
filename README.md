@@ -1,10 +1,4 @@
-Here's a comprehensive **README.md** file that covers all three of your use cases:  
 
-1. **Healthcare Article Generation Workflow using CrewAI**  
-2. **Travel Planner for India (PDF Report Generator)**  
-3. **AI-Based Formal Email Assistant with Auto Email Sending**  
-
----
 
 ### 📘 README.md
 
